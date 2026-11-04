@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Central de Agentes</title>
+<style>
+:root{
+  --bg:#0a1020;--painel:#111a2e;--painel2:#17223b;--borda:#233152;--texto:#e8eef8;--suave:#98a8c4;
+  --ok:#34d399;--erro:#f87171;--aviso:#fbbf24;--azul:#60a5fa;--roxo:#a78bfa;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+html{background:var(--bg)}
+#aprovacoes{max-height:560px;overflow:auto;padding-right:4px}
+body{background:radial-gradient(1200px 600px at 20% -10%,#16264a 0%,var(--bg) 60%) fixed;color:var(--texto);
+  font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+button,input{font:inherit;color:inherit}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;
+  padding:14px 24px;border-bottom:1px solid var(--borda);background:rgba(10,16,32,.8);backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:5}
+.marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.2px}
+.marca i{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:9px;
+  background:linear-gradient(135deg,#60a5fa,#a78bfa);font-style:normal}
+nav{display:flex;gap:6px;background:var(--painel);border:1px solid var(--borda);padding:4px;border-radius:12px}
+nav button{border:0;background:transparent;padding:8px 16px;border-radius:9px;cursor:pointer;color:var(--suave);font-weight:600}
+nav button[aria-selected="true"]{background:var(--painel2);color:var(--texto);box-shadow:inset 0 0 0 1px var(--borda)}
+nav button:hover{color:var(--texto)}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{font-size:13px;padding:5px 11px;border-radius:99px;background:var(--painel);border:1px solid var(--borda);color:var(--suave)}
+.pill b{color:var(--texto)}
+.pill.off{color:var(--erro);border-color:#5b2530}
+main{max-width:1280px;margin:0 auto;padding:22px 24px 60px}
+section.aba{display:none}
+section.aba.ativa{display:block}
+h2{margin:0 0 4px;font-size:22px}
+h3{margin:0;font-size:16px}
+.suave{color:var(--suave)}
+.topo-aba{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
+.card{background:var(--painel);border:1px solid var(--borda);border-radius:16px}
+.btn{white-space:nowrap;border:1px solid var(--borda);background:var(--painel2);padding:8px 14px;border-radius:10px;cursor:pointer;font-weight:600;
+  transition:transform .08s,background .15s,border-color .15s}
+.btn:hover{background:#1e2c4d;border-color:#35497a}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.prim{background:linear-gradient(135deg,#3b82f6,#7c5cf0);border-color:transparent}
+.btn.prim:hover{filter:brightness(1.1)}
+.btn.ok{background:#12372b;border-color:#1f6e52;color:#8ff0c6}
+.btn.no{background:#3a1b24;border-color:#7a2f3f;color:#ffb3bd}
+.btn.sec{background:transparent}
+.btn.peq{padding:5px 10px;font-size:13px}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.agente{overflow:hidden;display:flex;flex-direction:column}
+.palco{position:relative;height:230px;background:radial-gradient(220px 160px at 50% 70%,rgba(255,255,255,.07),transparent 70%),linear-gradient(#0e1730,#0b1226);
+  border-bottom:1px solid var(--borda)}
+.palco canvas{width:100%;height:100%;display:block;cursor:pointer;transition:filter .3s}
+.palco.pausado canvas{filter:grayscale(.7) brightness(.7)}
+.palco .fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:72px}
+.palco .dica{position:absolute;left:10px;bottom:8px;font-size:12px;color:#6c7fa6;pointer-events:none}
+.corpo{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.nome{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.nome h3{display:flex;align-items:center;gap:8px}
+.nome h3::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c)}
+.chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;border:1px solid var(--borda);color:var(--suave)}
+.chip.trabalhando{color:#7dd3fc;border-color:#25607f;background:#0f2a3b}
+.chip.pausado{color:var(--aviso);border-color:#6b5517;background:#2d2410}
+.chip.ocioso{color:var(--ok);border-color:#1f6e52;background:#0f2b22}
+.ultimo{margin:0;font-size:13.5px;color:var(--suave);min-height:20px}
+.tarefas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tarefas li{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--painel2);
+  border:1px solid var(--borda);border-radius:11px;padding:8px 10px}
+.tarefas small{display:block;color:var(--suave);font-size:12px}
+.tarefas li>div{min-width:0}
+.badge{font-size:11px;padding:1px 7px;border-radius:99px;background:#1c2b4d;color:#9db7ee;margin-left:6px;font-weight:600}
+.badge.teste{background:#2b2350;color:#c4b5fd}
+.badge.aprov{background:#3a2f12;color:#fcd34d}
+.acoes{display:flex;gap:8px;margin-top:auto;padding-top:4px}
+.duas{display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-top:18px}
+@media(max-width:900px){.duas{grid-template-columns:1fr}}
+.caixa{padding:16px}
+.caixa h3{margin-bottom:10px}
+.vazio{color:var(--suave);font-size:14px;padding:6px 0}
+.aprov-item{border:1px solid var(--borda);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--painel2)}
+.aprov-item header{position:static;background:none;border:0;padding:0;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;backdrop-filter:none}
+.aprov-item ul{margin:0 0 10px;padding-left:18px;font-size:14px;color:#cfd9ec}
+.aprov-item .botoes{display:flex;gap:8px}
+.feed{list-style:none;margin:0;padding:0;max-height:330px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.feed li{font-size:13px;padding:7px 10px;border-radius:9px;background:var(--painel2);border-left:3px solid var(--borda);color:#cfd9ec}
+.feed li time{color:var(--suave);margin-right:6px;font-variant-numeric:tabular-nums}
+.feed .execucao{border-left-color:var(--ok)}
+.feed .falha{border-left-color:var(--erro)}
+.feed .aprendizado{border-left-color:var(--roxo);background:#1b1a38}
+.feed .aprovacao{border-left-color:var(--aviso)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{padding:14px 16px}
+.kpi span{display:block;font-size:13px;color:var(--suave)}
+.kpi strong{display:block;font-size:28px;line-height:1.2;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--suave)}
+.graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;margin-bottom:16px}
+@media(max-width:480px){.graficos{grid-template-columns:1fr}}
+.grafico{padding:14px 16px 12px}
+.grafico h3{margin-bottom:2px}
+.grafico p{margin:0 0 8px;font-size:13px;color:var(--suave)}
+.grafico .area{position:relative;height:240px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--borda);vertical-align:top}
+th{color:var(--suave);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.4px}
+td.num{font-variant-numeric:tabular-nums}
+.rolagem{overflow-x:auto}
+.cfg{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+.cfg .card{padding:16px}
+.cfg h3{margin-bottom:4px}
+.cfg p{margin:0 0 12px;font-size:13.5px}
+.linhas{display:flex;flex-direction:column;gap:8px}
+label.chave{display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:10px;background:var(--painel2);border:1px solid var(--borda)}
+input[type=checkbox]{width:18px;height:18px;accent-color:#6d8cff}
+input[type=number]{width:90px;background:var(--bg);border:1px solid var(--borda);border-radius:8px;padding:5px 8px}
+input[type=range]{width:100%;accent-color:#6d8cff}
+.linha-agenda{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--painel2);border:1px solid var(--borda)}
+.linha-agenda small{color:var(--suave);display:block}
+.barra-salvar{position:sticky;bottom:14px;display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.barra-salvar .caixa-flutuante{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(17,26,46,.95);border:1px solid var(--borda);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#aviso{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:20}
+#aviso div{background:#13203a;border:1px solid var(--borda);border-left:4px solid var(--ok);padding:10px 14px;border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:340px;font-size:14px}
+#aviso div.erro{border-left-color:var(--erro)}
+.vazio-geral{padding:22px;text-align:center;color:var(--suave)}
+</style>
+</head>
+<body>
+<header>
+  <div class="marca"><i>🤖</i> Central de Agentes</div>
+  <nav role="tablist" aria-label="Seções">
+    <button role="tab" data-aba="agentes" aria-selected="true">Agentes</button>
+    <button role="tab" data-aba="relatorios" aria-selected="false">Relatórios</button>
+    <button role="tab" data-aba="config" aria-selected="false">Configurar</button>
+  </nav>
+  <div class="pills">
+    <span class="pill" id="pill-fila">Fila: <b>–</b></span>
+    <span class="pill">Conexão: <b>simulada</b></span>
+    <span class="pill off" id="pill-offline" hidden>Sem conexão com o sistema</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ ABA AGENTES ============ -->
+  <section class="aba ativa" id="aba-agentes">
+    <div class="topo-aba">
+      <div>
+        <h2>Seus agentes</h2>
+        <div class="suave">Clique em um boneco para ele acenar, passe o mouse para ele olhar para você e use os botões para dar ordens.</div>
+      </div>
+      <button class="btn prim" id="btn-simular">🎲 Simular 10 rodadas de teste</button>
+    </div>
+    <div class="grade" id="grade"></div>
+    <div class="duas">
+      <div class="card caixa">
+        <h3>Aguardando seu OK</h3>
+        <div id="aprovacoes"></div>
+      </div>
+      <div class="card caixa">
+        <h3>Atividade recente</h3>
+        <ul class="feed" id="feed"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ABA RELATÓRIOS ============ -->
+  <section class="aba" id="aba-relatorios">
+    <div class="topo-aba">
+      <div>
+        <h2>Relatórios</h2>
+        <div class="suave">Resultados dos agentes e o que eles aprenderam. Os valores vêm dos marketplaces simulados.</div>
+      </div>
+      <button class="btn prim" id="btn-simular2">🎲 Simular 10 rodadas de teste</button>
+    </div>
+    <div class="card vazio-geral" id="rel-vazio" hidden>Ainda não há dados. Clique em “Simular 10 rodadas de teste” para os agentes trabalharem.</div>
+    <div class="kpis" id="kpis"></div>
+    <div class="graficos">
+      <div class="card grafico"><h3>Taxa de sucesso ao longo do tempo</h3><p>Média das últimas 6 execuções de cada agente. Quando sobe, o agente aprendeu algo.</p><div class="area"><canvas id="g-serie"></canvas></div></div>
+      <div class="card grafico"><h3>Execuções por marketplace</h3><p>Sucessos e falhas de cada agente.</p><div class="area"><canvas id="g-exec"></canvas></div></div>
+      <div class="card grafico"><h3>Faturamento nos relatórios (simulado)</h3><p>Soma dos pedidos lidos pelos agentes, em reais.</p><div class="area"><canvas id="g-valor"></canvas></div></div>
+      <div class="card grafico"><h3>Suas decisões</h3><p>Rascunhos aprovados, rejeitados e ainda pendentes.</p><div class="area"><canvas id="g-aprov"></canvas></div></div>
+    </div>
+    <div class="duas">
+      <div class="card caixa"><h3>Procedimentos aprendidos</h3><div class="rolagem" id="tab-proc"></div></div>
+      <div class="card caixa"><h3>Melhorias recentes</h3><div id="melhorias"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ ABA CONFIGURAR ============ -->
+  <section class="aba" id="aba-config">
+    <div class="topo-aba">
+      <div>
+        <h2>Configurar</h2>
+        <div class="suave">As mudanças valem na hora, sem reiniciar o sistema, depois de clicar em Salvar.</div>
+      </div>
+    </div>
+    <div class="cfg" id="cfg"></div>
+    <div class="barra-salvar">
+      <div class="caixa-flutuante">
+        <span class="suave" id="cfg-estado">Sem alterações</span>
+        <button class="btn sec" id="cfg-descartar">Descartar</button>
+        <button class="btn prim" id="cfg-salvar">Salvar configuração</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="aviso" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+"use strict";
+/* ---------- utilidades ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+async function api(rota, corpo) {
+  const opcoes = corpo === undefined
+    ? { cache: "no-store" }
+    : { method: "POST", headers: { "Content-Type": "application/json", "X-Painel": "1" }, body: JSON.stringify(corpo) };
+  const r = await fetch(rota, opcoes);
+  const dados = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(dados.erro || ("Erro " + r.status));
+  return dados;
+}
+function aviso(texto, tipo) {
+  const d = document.createElement("div");
+  if (tipo === "erro") d.className = "erro";
+  d.textContent = texto;
+  $("#aviso").appendChild(d);
+  setTimeout(() => d.remove(), 4200);
+}
+async function acao(fn) {
+  try { return await fn(); } catch (e) { aviso(e.message || "Algo deu errado", "erro"); }
+}
+
+const TEMAS = {
+  shopee:       { nome: "Shopee",        css: "#ee4d2d", cor: 0xee4d2d, olho: 0xfff1ea },
+  mercadolivre: { nome: "Mercado Livre", css: "#ffd100", cor: 0xf5c400, olho: 0x2563eb },
+  amazon:       { nome: "Amazon",        css: "#ff9900", cor: 0x34465f, olho: 0xff9900 },
+  tiktok:       { nome: "TikTok Shop",   css: "#25f4ee", cor: 0x20202a, olho: 0x25f4ee },
+};
+const TEMA_PADRAO = { nome: "Agente", css: "#60a5fa", cor: 0x3b6fd4, olho: 0xdbeafe };
+const tema = id => TEMAS[id] || TEMA_PADRAO;
+const ROTULOS = {
+  relatorio_diario: "Relatório diário", monitorar_concorrentes: "Monitorar concorrentes",
+  responder_perguntas: "Responder perguntas", checar_estoque: "Checar estoque",
+};
+const rotulo = t => ROTULOS[t] || String(t).replace(/_/g, " ");
+const R$ = v => "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/* ---------- estado ---------- */
+let estado = null, recebidoEm = 0, abaAtual = "agentes", cardsMontados = false;
+let configSuja = false, trabalhandoAte = {};
+const views = {};
+const agoraServidor = () => estado.agora + (performance.now() - recebidoEm) / 1000;
+
+/* ---------- abas ---------- */
+function mostrarAba(nome) {
+  abaAtual = nome;
+  $$("nav button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.aba === nome)));
+  $$("section.aba").forEach(s => s.classList.toggle("ativa", s.id === "aba-" + nome));
+  if (nome === "relatorios") carregarRelatorio();
+  if (nome === "config" && estado && !configSuja) renderConfig();
+}
+$$("nav button").forEach(b => b.addEventListener("click", () => mostrarAba(b.dataset.aba)));
+
+/* ---------- boneco 3D ---------- */
+function criarRobo(t) {
+  const mat = (cor, extra) => new THREE.MeshStandardMaterial(Object.assign({ color: cor, roughness: 0.42, metalness: 0.18 }, extra || {}));
+  const brilho = [];
+  const emissivo = (cor) => { const m = mat(cor, { emissive: cor, emissiveIntensity: 1 }); brilho.push(m); return m; };
+  const grupo = new THREE.Group();
+
+  const corpo = new THREE.Mesh(new THREE.BoxGeometry(1.15, 1.1, 0.8), mat(t.cor));
+  corpo.position.y = 0.1;
+  const placa = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.4, 0.06), mat(0x0b1220));
+  placa.position.set(0, 0.2, 0.42);
+  const luz = new THREE.Mesh(new THREE.SphereGeometry(0.09, 20, 20), emissivo(t.olho));
+  luz.position.set(0, 0.2, 0.47);
+  const cinto = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.85), mat(0x0b1220));
+  cinto.position.y = -0.38;
+
+  const cabeca = new THREE.Group();
+  cabeca.position.y = 1.15;
+  const cranio = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 0.82), mat(t.cor));
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.36, 0.06), mat(0x0b1220));
+  visor.position.set(0, 0.04, 0.43);
+  const olhoE = new THREE.Mesh(new THREE.SphereGeometry(0.095, 20, 20), emissivo(t.olho));
+  const olhoD = olhoE.clone();
+  olhoE.position.set(-0.2, 0.05, 0.47);
+  olhoD.position.set(0.2, 0.05, 0.47);
+  const haste = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.34, 12), mat(0x9aa6bd));
+  haste.position.y = 0.55;
+  const bola = new THREE.Mesh(new THREE.SphereGeometry(0.1, 20, 20), emissivo(t.olho));
+  bola.position.y = 0.76;
+  const orelhaE = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.12, 20), mat(0x0b1220));
+  orelhaE.rotation.z = Math.PI / 2;
+  orelhaE.position.set(-0.56, 0, 0);
+  const orelhaD = orelhaE.clone();
+  orelhaD.position.x = 0.56;
+  cabeca.add(cranio, visor, olhoE, olhoD, haste, bola, orelhaE, orelhaD);
+
+  const braco = (lado) => {
+    const pivo = new THREE.Group();
+    pivo.position.set(lado * 0.78, 0.5, 0);
+    const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.75, 16), mat(t.cor));
+    seg.position.y = -0.38;
+    const mao = new THREE.Mesh(new THREE.SphereGeometry(0.16, 18, 18), mat(0x0b1220));
+    mao.position.y = -0.8;
+    pivo.add(seg, mao);
+    return pivo;
+  };
+  const bracoE = braco(-1), bracoD = braco(1);
+
+  const perna = (lado) => {
+    const g = new THREE.Group();
+    const p = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.5, 0.38), mat(0x0b1220));
+    p.position.set(lado * 0.3, -0.85, 0);
+    const pe = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.58), mat(t.cor));
+    pe.position.set(lado * 0.3, -1.15, 0.08);
+    g.add(p, pe);
+    return g;
+  };
+
+  grupo.add(corpo, placa, luz, cinto, cabeca, bracoE, bracoD, perna(-1), perna(1));
+  grupo.position.y = 0;
+  return { grupo, cabeca, bracoE, bracoD, brilho };
+}
+
+function iniciar3D(canvas, t) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  const cena = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 50);
+  camera.position.set(0, 0.55, 6.4);
+  camera.lookAt(0, 0.35, 0);
+  cena.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const sol = new THREE.DirectionalLight(0xffffff, 0.95);
+  sol.position.set(3, 5, 4);
+  cena.add(sol);
+  const rim = new THREE.PointLight(t.cor, 1.2, 14);
+  rim.position.set(-3, 2, -2);
+  cena.add(rim);
+  const sombra = new THREE.Mesh(new THREE.CircleGeometry(0.95, 32), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.4 }));
+  sombra.rotation.x = -Math.PI / 2;
+  sombra.position.y = -1.25;
+  cena.add(sombra);
+  const robo = criarRobo(t);
+  cena.add(robo.grupo);
+
+  const v = { renderer, cena, camera, robo, canvas, w: 0, h: 0, visual: "ocioso",
+              rotAlvo: 0, rotAtual: 0, acenoAte: 0, fase: Math.random() * 6 };
+  canvas.addEventListener("pointermove", e => {
+    const r = canvas.getBoundingClientRect();
+    v.rotAlvo = ((e.clientX - r.left) / r.width - 0.5) * 1.5;
+  });
+  canvas.addEventListener("pointerleave", () => { v.rotAlvo = 0; });
+  canvas.addEventListener("click", () => { v.acenoAte = relogio.getElapsedTime() + 1.6; });
+  return v;
+}
+
+let relogio = null;
+function animar(v, t) {
+  const w = v.canvas.clientWidth, h = v.canvas.clientHeight;
+  if (!w || !h) return;
+  if (w !== v.w || h !== v.h) {
+    v.w = w; v.h = h;
+    v.renderer.setSize(w, h, false);
+    v.camera.aspect = w / h;
+    v.camera.updateProjectionMatrix();
+  }
+  const r = v.robo;
+  v.rotAtual += (v.rotAlvo - v.rotAtual) * 0.08;
+  let giro = v.rotAtual, y = 0, bE = 0, bD = 0, cabX = 0, cabY = 0, brilho = 1;
+  if (v.visual === "ocioso") {
+    y = Math.sin(t * 1.6 + v.fase) * 0.05;
+    cabY = Math.sin(t * 0.8 + v.fase) * 0.22;
+    bE = Math.sin(t * 1.6 + v.fase) * 0.08; bD = -bE;
+    brilho = 0.8 + 0.2 * Math.sin(t * 2 + v.fase);
+  } else if (v.visual === "trabalhando") {
+    giro += Math.sin(t * 3) * 0.28;
+    y = Math.abs(Math.sin(t * 6)) * 0.09;
+    bE = Math.sin(t * 9) * 0.9; bD = Math.sin(t * 9 + Math.PI) * 0.9;
+    cabX = Math.sin(t * 6) * 0.08;
+    brilho = 0.6 + 0.7 * Math.abs(Math.sin(t * 8));
+  } else {
+    cabX = 0.38; brilho = 0.06;
+  }
+  let acenoZ = 0;
+  if (t < v.acenoAte) { bD = 0; acenoZ = 2.3 + Math.sin(t * 12) * 0.35; }
+  r.grupo.position.y = y;
+  r.grupo.rotation.y = giro;
+  r.cabeca.rotation.set(cabX, cabY, 0);
+  r.bracoE.rotation.x = bE;
+  r.bracoD.rotation.x = bD;
+  r.bracoD.rotation.z = acenoZ;
+  r.brilho.forEach(m => { m.emissiveIntensity = brilho; });
+  v.renderer.render(v.cena, v.camera);
+}
+function loop() {
+  requestAnimationFrame(loop);
+  if (abaAtual !== "agentes" || !relogio) return;
+  const t = relogio.getElapsedTime();
+  for (const v of Object.values(views)) { try { animar(v, t); } catch (e) { /* não derruba a tela */ } }
+}
+
+/* ---------- aba Agentes ---------- */
+function visualDo(ag) {
+  if (!ag.ativo) return "pausado";
+  const recente = ag.ultimo && (agoraServidor() - ag.ultimo.em) < 3.5;
+  if (ag.estado === "trabalhando" || recente || (trabalhandoAte[ag.id] || 0) > Date.now()) return "trabalhando";
+  return "ocioso";
+}
+const TEXTO_CHIP = { ocioso: "Ocioso", trabalhando: "Trabalhando…", pausado: "Pausado" };
+
+function montarCards() {
+  const grade = $("#grade");
+  grade.innerHTML = "";
+  for (const ag of estado.agentes) {
+    const t = tema(ag.id);
+    const card = document.createElement("article");
+    card.className = "card agente";
+    card.dataset.id = ag.id;
+    card.innerHTML = `
+      <div class="palco"><canvas></canvas><div class="fallback" hidden>🤖</div><span class="dica">clique para acenar</span></div>
+      <div class="corpo">
+        <div class="nome"><h3 style="--c:${t.css}">${esc(t.nome)}</h3><span class="chip" data-chip></span></div>
+        <p class="ultimo" data-ultimo></p>
+        <ul class="tarefas">
+          ${ag.tarefas.map(tf => `
+            <li data-li="${esc(tf.tarefa)}">
+              <div><strong>${esc(rotulo(tf.tarefa))}</strong><small data-info></small></div>
+              <button class="btn peq" data-tarefa="${esc(tf.tarefa)}">▶ Executar</button>
+            </li>`).join("")}
+        </ul>
+        <div class="acoes"><button class="btn sec" data-pausar></button></div>
+      </div>`;
+    grade.appendChild(card);
+    const canvas = $("canvas", card);
+    try {
+      if (!window.THREE) throw new Error("sem three.js");
+      relogio = relogio || new THREE.Clock();
+      views[ag.id] = iniciar3D(canvas, t);
+    } catch (e) {
+      canvas.hidden = true;
+      $(".fallback", card).hidden = false;
+    }
+  }
+}
+
+function atualizarCards() {
+  for (const ag of estado.agentes) {
+    const card = $(`.agente[data-id="${ag.id}"]`);
+    if (!card) continue;
+    const vis = visualDo(ag);
+    if (views[ag.id]) views[ag.id].visual = vis;
+    $(".palco", card).classList.toggle("pausado", vis === "pausado");
+    const chip = $("[data-chip]", card);
+    chip.textContent = TEXTO_CHIP[vis];
+    chip.className = "chip " + vis;
+    const u = ag.ultimo;
+    $("[data-ultimo]", card).textContent = u
+      ? `${u.ok ? "✔" : "✖"} ${rotulo(u.tarefa)}: ${u.resumo}`
+      : "Ainda não executou nada.";
+    for (const tf of ag.tarefas) {
+      const li = $(`[data-li="${tf.tarefa}"]`, card);
+      if (!li) continue;
+      $("[data-info]", li).innerHTML =
+        `versão ${tf.versao}` + (tf.pontuacao != null ? ` · nota ${tf.pontuacao.toFixed(2)}` : "") +
+        (tf.em_teste ? '<span class="badge teste">testando melhoria</span>' : "") +
+        (tf.exige_aprovacao ? '<span class="badge aprov">pede seu OK</span>' : "");
+      $("button", li).disabled = !ag.ativo;
+    }
+    const bp = $("[data-pausar]", card);
+    bp.textContent = ag.ativo ? "⏸ Pausar agente" : "▶ Retomar agente";
+  }
+}
+
+$("#grade").addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  const id = btn.closest(".agente").dataset.id;
+  if (btn.dataset.tarefa) {
+    acao(async () => {
+      await api("/api/executar", { marketplace: id, tarefa: btn.dataset.tarefa });
+      trabalhandoAte[id] = Date.now() + 3500;
+      aviso(`${tema(id).nome}: ${rotulo(btn.dataset.tarefa)} na fila`);
+    });
+  } else if (btn.hasAttribute("data-pausar")) {
+    const ag = estado.agentes.find(a => a.id === id);
+    acao(async () => {
+      await api("/api/agente", { marketplace: id, ativo: !ag.ativo });
+      aviso(`${tema(id).nome} ${ag.ativo ? "pausado" : "retomado"}`);
+      await atualizar();
+    });
+  }
+});
+
+function simular() {
+  acao(async () => {
+    await api("/api/simular", { rodadas: 10 });
+    estado.agentes.forEach(a => { trabalhandoAte[a.id] = Date.now() + 5000; });
+    aviso("10 rodadas de teste enviadas aos agentes");
+  });
+}
+$("#btn-simular").addEventListener("click", simular);
+$("#btn-simular2").addEventListener("click", simular);
+
+let cacheAprov = "", cacheFeed = "";
+function atualizarAprovacoes() {
+  const itens = estado.aprovacoes;
+  const chave = JSON.stringify(itens);
+  if (chave === cacheAprov) return;
+  cacheAprov = chave;
+  const alvo = $("#aprovacoes");
+  if (!itens.length) { alvo.innerHTML = '<div class="vazio">Nada esperando. Quando um agente preparar respostas ou preços, aparece aqui para você aprovar.</div>'; return; }
+  alvo.innerHTML = itens.map(i => `
+    <div class="aprov-item" data-id="${i.id}">
+      <header><strong>${esc(i.procedimento)}</strong><span class="suave">#${i.id}</span></header>
+      <ul>${i.itens.slice(0, 6).map(it => `<li>${descreverItem(it)}</li>`).join("")}${i.itens.length > 6 ? `<li class="suave">… e mais ${i.itens.length - 6}</li>` : ""}</ul>
+      <div class="botoes">
+        <button class="btn ok peq" data-decisao="sim">✔ Aprovar</button>
+        <button class="btn no peq" data-decisao="nao">✖ Rejeitar</button>
+      </div>
+    </div>`).join("");
+}
+function descreverItem(it) {
+  if (it.resposta) return `“${esc(it.pergunta)}” → ${esc(it.resposta)}`;
+  if (it.para != null) return `${esc(it.sku)}: ${R$(it.de)} → <b>${R$(it.para)}</b>`;
+  return esc(JSON.stringify(it));
+}
+$("#aprovacoes").addEventListener("click", e => {
+  const btn = e.target.closest("[data-decisao]");
+  if (!btn) return;
+  const id = Number(btn.closest(".aprov-item").dataset.id);
+  const aprovado = btn.dataset.decisao === "sim";
+  const motivo = aprovado ? "" : (window.prompt("Motivo da rejeição (opcional):") || "");
+  acao(async () => {
+    await api("/api/aprovar", { id, aprovado, motivo });
+    aviso(aprovado ? "Aprovado" : "Rejeitado");
+    await atualizar();
+  });
+});
+
+function atualizarFeed() {
+  const chave = JSON.stringify(estado.eventos);
+  if (chave === cacheFeed) return;
+  cacheFeed = chave;
+  const evs = estado.eventos.slice().reverse();
+  $("#feed").innerHTML = evs.length
+    ? evs.map(e => `<li class="${esc(e.tipo)}"><time>${esc(e.em)}</time>${esc(e.texto)}</li>`).join("")
+    : '<li class="suave">Sem atividade ainda.</li>';
+}
+
+/* ---------- aba Relatórios ---------- */
+let graficos = null, ultimoRel = "";
+const MKTS = () => Object.keys(TEMAS);
+function criarGraficos() {
+  if (!window.Chart || graficos) return;
+  Chart.defaults.color = "#98a8c4";
+  Chart.defaults.borderColor = "rgba(255,255,255,.08)";
+  Chart.defaults.font.family = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  const base = { responsive: true, maintainAspectRatio: false, animation: { duration: 350 }, plugins: { legend: { labels: { boxWidth: 12 } } } };
+  graficos = {
+    serie: new Chart($("#g-serie"), { type: "line", data: { labels: [], datasets: [] },
+      options: { ...base, interaction: { mode: "index", intersect: false },
+        scales: { y: { min: 0, max: 100, ticks: { callback: v => v + "%" } }, x: { title: { display: true, text: "execuções" } } } } }),
+    exec: new Chart($("#g-exec"), { type: "bar", data: { labels: [], datasets: [] },
+      options: { ...base, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } } }),
+    valor: new Chart($("#g-valor"), { type: "bar", data: { labels: [], datasets: [] },
+      options: { ...base, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => R$(c.parsed.y) } } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => "R$ " + v } } } } }),
+    aprov: new Chart($("#g-aprov"), { type: "doughnut", data: { labels: [], datasets: [] },
+      options: { ...base, cutout: "62%", plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } } } } }),
+  };
+}
+async function carregarRelatorio() {
+  try {
+    const rel = await api("/api/relatorio");
+    const chave = JSON.stringify(rel);
+    if (chave === ultimoRel) return;
+    ultimoRel = chave;
+    desenharRelatorio(rel);
+  } catch (e) { /* o aviso de conexão já cobre */ }
+}
+function desenharRelatorio(rel) {
+  const k = rel.kpis;
+  $("#rel-vazio").hidden = k.total > 0;
+  $("#kpis").innerHTML = [
+    ["Execuções", k.total, `${k.ok} com sucesso · ${k.falhas} com falha`],
+    ["Taxa de sucesso", k.taxa + "%", "de todas as execuções"],
+    ["Procedimentos melhorados", `${k.melhorados} de ${k.procedimentos}`, "reescritos pelos agentes"],
+    ["Aguardando seu OK", rel.feedback.pendentes, "rascunhos e preços"],
+    ["Faturamento lido (simulado)", R$(k.valor), "soma dos relatórios"],
+  ].map(([a, b, c]) => `<div class="card kpi"><span>${a}</span><strong>${esc(b)}</strong><small>${c}</small></div>`).join("");
+
+  criarGraficos();
+  if (graficos) {
+    const mk = MKTS();
+    const nomes = mk.map(m => tema(m).nome);
+    const maxPts = Math.max(1, ...mk.map(m => (rel.serie[m] || []).length));
+    graficos.serie.data.labels = Array.from({ length: maxPts }, (_, i) => i + 1);
+    graficos.serie.data.datasets = mk.map(m => ({
+      label: tema(m).nome, data: rel.serie[m] || [], borderColor: tema(m).css, backgroundColor: tema(m).css,
+      borderWidth: 2, tension: 0.3, pointRadius: 0, pointHoverRadius: 4 }));
+    graficos.serie.update();
+    graficos.exec.data.labels = nomes;
+    graficos.exec.data.datasets = [
+      { label: "Sucesso", data: mk.map(m => rel.por_marketplace[m].ok), backgroundColor: "#34d399", borderRadius: 4 },
+      { label: "Falha", data: mk.map(m => rel.por_marketplace[m].falha), backgroundColor: "#f87171", borderRadius: 4 }];
+    graficos.exec.update();
+    graficos.valor.data.labels = nomes;
+    graficos.valor.data.datasets = [{ data: mk.map(m => rel.por_marketplace[m].valor), backgroundColor: mk.map(m => tema(m).css), borderRadius: 6 }];
+    graficos.valor.update();
+    const f = rel.feedback;
+    graficos.aprov.data.labels = ["Aprovados", "Rejeitados", "Pendentes"];
+    graficos.aprov.data.datasets = [{ data: [f.aprovados, f.rejeitados, f.pendentes], backgroundColor: ["#34d399", "#f87171", "#fbbf24"], borderWidth: 0 }];
+    graficos.aprov.update();
+  } else {
+    document.querySelectorAll(".grafico .area").forEach(a => { a.innerHTML = '<div class="vazio">Gráficos precisam de internet para carregar a biblioteca Chart.js.</div>'; });
+  }
+
+  $("#tab-proc").innerHTML = rel.procedimentos.length ? `<table>
+    <thead><tr><th>Procedimento</th><th>Versão</th><th>Nota</th><th>Passos</th></tr></thead>
+    <tbody>${rel.procedimentos.map(p => `<tr>
+      <td>${esc(p.id)}${p.em_teste ? '<span class="badge teste">em teste</span>' : ""}</td>
+      <td class="num">v${p.versao}</td><td class="num">${p.pontuacao.toFixed(2)}</td>
+      <td class="suave">${p.passos.map(esc).join(" › ")}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="vazio">Nenhum procedimento ainda.</div>';
+  $("#melhorias").innerHTML = rel.melhorias.length
+    ? rel.melhorias.map(m => `<div class="aprov-item" style="margin-bottom:8px"><strong>${esc(m.procedimento)} · v${m.versao}</strong>
+        <div class="suave" style="font-size:13px">${esc(m.motivo)}</div><div class="suave" style="font-size:12px">${esc(m.em)}</div></div>`).join("")
+    : '<div class="vazio">Os agentes ainda não reescreveram nenhum procedimento.</div>';
+}
+
+/* ---------- aba Configurar ---------- */
+function marcarSuja() {
+  configSuja = true;
+  $("#cfg-estado").textContent = "Alterações não salvas";
+}
+function renderConfig() {
+  const c = estado.config;
+  const nome = id => tema(id).nome;
+  const tarefasDe = id => (estado.agentes.find(a => a.id === id) || { tarefas: [] }).tarefas.map(t => t.tarefa);
+  $("#cfg").innerHTML = `
+    <div class="card">
+      <h3>Agentes ativos</h3>
+      <p class="suave">Um agente desligado não executa tarefas agendadas nem manuais.</p>
+      <div class="linhas">${estado.agentes.map(a => `
+        <label class="chave"><input type="checkbox" data-cfg-ativo="${esc(a.id)}" ${(c.agentes[a.id] || {}).ativo !== false ? "checked" : ""}>
+        <span>${esc(nome(a.id))}</span></label>`).join("")}</div>
+    </div>
+    <div class="card">
+      <h3>Agenda automática</h3>
+      <p class="suave">De quanto em quanto tempo cada tarefa roda sozinha. 60 min = 1 hora · 1440 min = 1 dia.</p>
+      <div class="linhas">${c.agenda.map(a => `
+        <div class="linha-agenda" data-agenda data-mkt="${esc(a.marketplace)}" data-tarefa="${esc(a.tarefa)}">
+          <input type="checkbox" data-a-ativa ${a.ativa ? "checked" : ""} aria-label="Ativar">
+          <div>${esc(rotulo(a.tarefa))}<small>${esc(nome(a.marketplace))}</small></div>
+          <label class="suave">a cada <input type="number" min="1" max="10080" value="${a.cada_minutos}" data-a-min> min</label>
+        </div>`).join("")}</div>
+    </div>
+    <div class="card">
+      <h3>Aprovação humana</h3>
+      <p class="suave">Marque as tarefas cujo resultado só vale depois do seu OK. Recomendo manter marcadas as que falam com clientes ou mudam preços.</p>
+      <div class="linhas">${estado.agentes.map(a => tarefasDe(a.id).map(t => `
+        <label class="chave"><input type="checkbox" data-cfg-aprov data-mkt="${esc(a.id)}" data-tarefa="${esc(t)}"
+          ${((c.exige_aprovacao[a.id] || []).includes(t)) ? "checked" : ""}>
+        <span>${esc(nome(a.id))} · ${esc(rotulo(t))}</span></label>`).join("")).join("")}</div>
+    </div>
+    <div class="card">
+      <h3>Aprendizado</h3>
+      <p class="suave">Quando o agente deve tentar melhorar um procedimento.</p>
+      <label>Tentar melhorar se mais de <b id="cfg-limiar-txt">${c.aprendizado.limiar_falha_pct}%</b> das execuções falharem</label>
+      <input type="range" id="cfg-limiar" min="5" max="80" step="5" value="${c.aprendizado.limiar_falha_pct}">
+      <div style="margin-top:14px"><label class="suave">Execuções mínimas antes de avaliar:
+        <input type="number" id="cfg-min" min="2" max="30" value="${c.aprendizado.minimo_execucoes}"></label></div>
+    </div>
+    <div class="card">
+      <h3>Conexão com os marketplaces</h3>
+      <p class="suave">Agora todos os agentes usam marketplaces <b>simulados</b>: nada é lido nem alterado nas suas contas reais. Para conectar de verdade, o próximo passo é criar um conector com a API oficial de cada plataforma (veja o README).</p>
+      <div class="linhas">${estado.agentes.map(a => `<div class="linha-agenda" style="grid-template-columns:1fr auto"><span>${esc(nome(a.id))}</span><span class="chip">Simulado</span></div>`).join("")}</div>
+    </div>`;
+  configSuja = false;
+  $("#cfg-estado").textContent = "Sem alterações";
+}
+$("#cfg").addEventListener("input", e => {
+  if (e.target.id === "cfg-limiar") $("#cfg-limiar-txt").textContent = e.target.value + "%";
+  marcarSuja();
+});
+function coletarConfig() {
+  const c = JSON.parse(JSON.stringify(estado.config));
+  $$("[data-cfg-ativo]").forEach(el => { c.agentes[el.dataset.cfgAtivo] = { ativo: el.checked }; });
+  c.agenda = $$("[data-agenda]").map(tr => ({
+    marketplace: tr.dataset.mkt, tarefa: tr.dataset.tarefa,
+    ativa: $("[data-a-ativa]", tr).checked, cada_minutos: parseInt($("[data-a-min]", tr).value, 10) || 60 }));
+  c.exige_aprovacao = {};
+  estado.agentes.forEach(a => { c.exige_aprovacao[a.id] = []; });
+  $$("[data-cfg-aprov]").forEach(el => { if (el.checked) c.exige_aprovacao[el.dataset.mkt].push(el.dataset.tarefa); });
+  c.aprendizado = { limiar_falha_pct: Number($("#cfg-limiar").value), minimo_execucoes: Number($("#cfg-min").value) };
+  return c;
+}
+$("#cfg-salvar").addEventListener("click", () => acao(async () => {
+  const r = await api("/api/config", { config: coletarConfig() });
+  estado.config = r.config;
+  renderConfig();
+  aviso("Configuração salva e aplicada");
+  await atualizar();
+}));
+$("#cfg-descartar").addEventListener("click", () => { if (estado) { renderConfig(); aviso("Alterações descartadas"); } });
+
+/* ---------- atualização periódica ---------- */
+async function atualizar() {
+  try {
+    estado = await api("/api/estado");
+    recebidoEm = performance.now();
+    $("#pill-offline").hidden = true;
+    if (!cardsMontados) { montarCards(); cardsMontados = true; }
+    atualizarCards();
+    atualizarAprovacoes();
+    atualizarFeed();
+    $("#pill-fila").innerHTML = `Fila: <b>${estado.fila}</b>`;
+    if (abaAtual === "config" && !configSuja && !$("#cfg").children.length) renderConfig();
+  } catch (e) {
+    $("#pill-offline").hidden = false;
+  }
+}
+atualizar();
+setInterval(atualizar, 1200);
+setInterval(() => { if (abaAtual === "relatorios") carregarRelatorio(); }, 4000);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
